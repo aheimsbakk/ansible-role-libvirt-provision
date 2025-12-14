@@ -35,4 +35,5 @@
                     - 192.168.122.12/24
           - name: ubuntu01
             distro: noble
+            # Undefine networks, run with libvirt defaults
             networks:

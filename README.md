@@ -73,11 +73,46 @@ collections:
 
 ## Example Playbook
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+```yaml
+---
+- hosts: all
 
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
+  pre_tasks:
+    - name: Set variables that need to be set on localhost
+      ansible.builtin.set_fact:
+        libvirt_provision_root_ssh_key: "{{ lookup('file', lookup('env', 'HOME') + '/.ssh/id_ed25519.pub') }}"
+      delegate_to: localhost
+
+  roles:
+    - role: ../..
+      vars:
+        # Don't define password if you're working with remote VMs.
+        # Then use only the SSH key. Keep safe.
+        libvirt_provision_root_password: root
+        libvirt_provision_virtual_machines:
+          - name: trixie01
+            memory_mb: 2000
+            disk_gb: 20
+            vcpus: 2
+            distro: trixie
+            net_config:
+              ethernets:
+                enp1s0:
+                  addresses:
+                    - 192.168.122.11/24
+          - name: trixie02
+            memory_mb: 1500
+            distro: trixie
+            net_config:
+              ethernets:
+                enp1s0:
+                  addresses:
+                    - 192.168.122.12/24
+          - name: ubuntu01
+            distro: noble
+            # Undefine networks, run with libvirt defaults
+            networks:
+```
 
 ## Testing
 
