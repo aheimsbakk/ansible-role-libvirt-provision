@@ -62,10 +62,12 @@ libvirt_provision_virtual_machine_config:
 # Set default SSH key to use for connecting to machine as root.
 libvirt_provision_root_ssh_key:
 
+# Set default root password for connecting to machine as root.
+libvirt_provision_root_password:
+
 # Define virtual machines to create.
 # Defaults to one machine without specific bridge or net_config.
 libvirt_provision_virtual_machines:
   - name: my-trixie-vm
     distro: trixie
     networks:
-    net_config:
