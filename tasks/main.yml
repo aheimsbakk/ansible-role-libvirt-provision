@@ -2,7 +2,8 @@
 ---
 - name: Combine default and custom config for VMs with network net_config
   ansible.builtin.set_fact:
-    running_virtual_machines: "{{ running_virtual_machines | default([]) + [libvirt_provision_virtual_machine_config | combine(item) | combine({'net_config': libvirt_provision_virtual_machine_net_config}) | combine(item, recursive=True)] }}"
+    running_virtual_machines: "{{ running_virtual_machines | default([]) + [libvirt_provision_virtual_machine_config | combine(item) |
+      combine({'net_config': libvirt_provision_virtual_machine_net_config}) | combine(item, recursive=True)] }}"
   loop: "{{ libvirt_provision_virtual_machines }}"
   loop_control:
     label: '{{ item.name }}'
@@ -46,9 +47,9 @@
     argv:
       - virsh
       - --connect
-      - "{{ libvirt_connection }}"
+      - "{{ libvirt_provision_connection }}"
       - vol-create-as
-      - "{{ libvirt_storage_pool }}"
+      - "{{ libvirt_provision_storage_pool }}"
       - "{{ item.name }}.qcow2"
       - "{{ item.disk_gb }}G"
       - --format
@@ -77,13 +78,13 @@
     argv:
       - virsh
       - --connect
-      - "{{ libvirt_connection }}"
+      - "{{ libvirt_provision_connection }}"
       - vol-upload
       - "{{ item.item.name }}.qcow2"
       - "{{ temp_folder }}/{{ libvirt_provision_distros[item.item.distro]['url'] | basename }}"
       - --sparse
       - --pool
-      - "{{ libvirt_storage_pool }}"
+      - "{{ libvirt_provision_storage_pool }}"
   loop: "{{ disk_placeholder.results }}"
   loop_control:
     label: '{{ item.item.name }}.qcow2'
@@ -97,12 +98,12 @@
     argv:
       - virsh
       - --connect
-      - "{{ libvirt_connection }}"
+      - "{{ libvirt_provision_connection }}"
       - vol-resize
       - "{{ item.item.name }}.qcow2"
       - "{{ item.item.disk_gb }}G"
       - --pool
-      - "{{ libvirt_storage_pool }}"
+      - "{{ libvirt_provision_storage_pool }}"
   loop: "{{ disk_placeholder.results }}"
   loop_control:
     label: '{{ item.item.name }}.qcow2'
@@ -127,6 +128,23 @@
     content: |
       {{ libvirt_provision_root_password }}
   when: temp_root_password.path is defined
+
+- name: Create temporary ssh key file
+  ansible.builtin.tempfile:
+    state: file
+    suffix: ansible
+  register: temp_ssh_key
+  when:
+    - libvirt_provision_root_ssh_key is defined
+    - libvirt_provision_root_ssh_key is not none
+
+- name: Populate temporary ssh key file
+  ansible.builtin.copy:
+    dest: "{{ temp_ssh_key.path }}"
+    mode: "0600"
+    content: |
+      {{ libvirt_provision_root_ssh_key }}
+  when: temp_ssh_key.path is defined
 
 - name: Create temporary network config file
   ansible.builtin.tempfile:
@@ -155,7 +173,7 @@
 
 - name: Create VMs
   community.libvirt.virt_install:
-    uri: "{{ libvirt_connection }}"
+    uri: "{{ libvirt_provision_connection }}"
     name: "{{ item.item.name }}"
     memory: "{{ item.item.memory_mb }}"
     vcpus: "{{ item.item.vcpus }}"
@@ -164,13 +182,13 @@
       name: "{{ libvirt_provision_distros[item.item.distro]['os_variant'] }}"
     boot: "{{ libvirt_provision_distros[item.item.distro]['boot'] | default(omit) }}"
     disks:
-      - vol: "{{ libvirt_storage_pool }}/{{ item.item.name }}.qcow2"
+      - vol: "{{ libvirt_provision_storage_pool }}/{{ item.item.name }}.qcow2"
         bus: virtio
         driver:
           discard: unmap
     cloud_init:
       disable: true
-      root_ssh_key: "{{ libvirt_provision_root_ssh_key | default(omit) }}"
+      root_ssh_key: "{{ temp_ssh_key.path | default(omit) }}"
       network_config: "{{ item.path | default(omit) }}"
       root_password_file: "{{ temp_root_password.path | default(omit) }}"
     networks: "{{ item.item.networks | default(omit) }}"
@@ -180,11 +198,21 @@
   loop: "{{ temp_net_config.results }}"
   loop_control:
     label: '{{ item.item.name }}'
+  register: cmd_virt_install
   failed_when: false
+
+- name: Result of VM operation
+  ansible.builtin.debug:
+    msg: "{{ item.msg }}"
+  loop: "{{ cmd_virt_install.results }}"
+  loop_control:
+    label: '{{ item.item.item.name }}'
+  when:
+    - item.msg is defined
 
 - name: Undefine VMs
   community.libvirt.virt:
-    uri: "{{ libvirt_connection }}"
+    uri: "{{ libvirt_provision_connection }}"
     name: "{{ item.item.name }}"
     command: undefine
     flags:
@@ -200,6 +228,12 @@
     path: "{{ temp_root_password.path }}"
     state: absent
   when: temp_root_password.path is defined
+
+- name: Remove temporary ssh key file
+  ansible.builtin.file:
+    path: "{{ temp_ssh_key.path }}"
+    state: absent
+  when: temp_ssh_key.path is defined
 
 - name: Remove temporary network config file
   ansible.builtin.file:

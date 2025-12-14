@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 ---
 # Defaults to use system qemu socket since we use bridge for network.
-libvirt_connection: qemu:///system
+libvirt_provision_connection: qemu:///system
 
 # Libvirt storage pool where to create virtual machine disk images.
-libvirt_storage_pool: default
+libvirt_provision_storage_pool: default
 
 # Create virtual machines on 'present', destroy on 'absent'.
 state: present
