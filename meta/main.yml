@@ -1,0 +1,27 @@
+#SPDX-License-Identifier: MIT-0
+galaxy_info:
+  author: Arnulf Heimsbakk
+  description: Create simple reproducable VMs using virsh and community.libvirt
+  company: None
+
+  license: GPL-2.0-or-later
+
+  min_ansible_version: '2.18'
+
+  # If this a Container Enabled role, provide the minimum Ansible Container version.
+  # min_ansible_container_version:
+
+  platforms:
+    - name: Debian
+      versions:
+        - trixie
+    - name: Ubuntu
+      versions:
+        - noble
+
+  galaxy_tags:
+    - devops
+    - vm
+    - libvirt
+
+dependencies: []
