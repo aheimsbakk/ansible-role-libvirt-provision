@@ -3,4 +3,30 @@
 - hosts: localhost
   remote_user: root
   roles:
-    - ansible-role-libvirt-vm-provision
+    - role: ../..
+      vars:
+        libvirt_provision_root_ssh_key: "{{ lookup('env', 'HOME') }}/.ssh/id_ed25519.pub"
+        libvirt_virtual_machines:
+          - name: trixie01
+            memory_mb: 2000
+            disk_gb: 20
+            vcpus: 2
+            distro: trixie
+            net_config:
+              ethernets:
+                enp1s0:
+                  addresses:
+                    - 192.168.122.11/24
+          - name: trixie02
+            memory_mb: 1500
+            distro: trixie
+            net_config:
+              ethernets:
+                enp1s0:
+                  addresses:
+                    - 192.168.122.12/24
+          - name: ubuntu01
+            distro: noble
+            networks:
+
+

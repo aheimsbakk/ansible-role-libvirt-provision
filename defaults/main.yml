@@ -1,3 +1,71 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 ---
-# defaults file for ansible-role-libvirt-vm-provision
+# Defaults to use system qemu socket since we use bridge for network.
+libvirt_connection: qemu:///system
+
+# Libvirt storage pool where to create virtual machine disk images.
+libvirt_storage_pool: default
+
+# Create virtual machines on 'present', destroy on 'absent'.
+state: present
+
+# Define distros we automatically download and boot.
+# Boot UEFI is only needed when booting uefi images.
+libvirt_provision_distros:
+  trixie:
+    url: https://cloud.debian.org/images/cloud/trixie/latest/debian-13-generic-amd64.qcow2
+    os_variant: debian13
+    boot: uefi
+  noble:
+    url: https://cloud-images.ubuntu.com/minimal/daily/noble/current/noble-minimal-cloudimg-amd64.img
+    os_variant: ubuntu24.04
+    boot: uefi
+  rocky10:
+    url: https://dl.rockylinux.org/pub/rocky/10/images/x86_64/Rocky-10-GenericCloud-Base.latest.x86_64.qcow2
+    os_variant: rocky-unknown
+    boot: uefi
+  rocky9:
+    url: https://dl.rockylinux.org/pub/rocky/9/images/x86_64/Rocky-9-GenericCloud.latest.x86_64.qcow2
+    os_variant: rocky9
+    boot: uefi
+
+# Default network config for a virtual machine.
+# Machine can override everything.
+libvirt_provision_virtual_machine_net_config:
+  version: 2
+  ethernets:
+    enp1s0:
+      dhcp4: false
+      addresses:
+        - 192.168.122.10/24
+      routes:
+        - to: default
+          via: 192.168.122.1
+      nameservers:
+        addresses:
+          - 1.1.1.1
+          - 8.8.8.8
+
+# Default virtual machine config.
+# Virtual machines can override everything, even using more bridges.
+libvirt_provision_virtual_machine_config:
+  memory_mb: 1024
+  disk_gb: 10
+  vcpus: 1
+  distro: trixie
+  networks:
+    - bridge: virbr0
+      model:
+        type: virtio
+  net_config: {}
+
+# Set default SSH key to use for connecting to machine as root.
+libvirt_provision_root_ssh_key:
+
+# Define virtual machines to create.
+# Defaults to one machine without specific bridge or net_config.
+libvirt_provision_virtual_machines:
+  - name: my-trixie-vm
+    distro: trixie
+    networks:
+    net_config:
