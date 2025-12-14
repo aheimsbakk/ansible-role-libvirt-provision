@@ -1,8 +1,11 @@
-#SPDX-License-Identifier: MIT-0
+# SPDX-License-Identifier: MIT-0
 galaxy_info:
   author: Arnulf Heimsbakk
   description: Create simple reproducable VMs using virsh and community.libvirt
   company: None
+
+  role_name: libvirt_vm_provision
+  namespace: aheimsbakk
 
   license: GPL-2.0-or-later
 
