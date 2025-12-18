@@ -3,6 +3,9 @@
 # Defaults to use system qemu socket since we use bridge for network.
 libvirt_provision_connection: qemu:///system
 
+# Folder to store temporary files and images
+libvirt_provision_temp_path: /tmp
+
 # Libvirt storage pool where to create virtual machine disk images.
 libvirt_provision_storage_pool: default
 

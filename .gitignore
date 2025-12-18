@@ -1,4 +1,4 @@
 # Ignore temporary files
 .ansible
 .venv/*
-
+.vscode

@@ -1,5 +1,17 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 ---
+- name: Check if we have a valid temp folder
+  ansible.builtin.stat:
+    path: '{{ libvirt_provision_temp_path }}'
+  register: folder_stat
+
+- name: Create the the temp folder if it does not exists
+  ansible.builtin.file:
+    path: '{{ libvirt_provision_temp_path }}'
+    state: directory
+    mode: '0755'
+  when: not folder_stat.stat.exists
+
 - name: Combine default and custom config for VMs with network net_config
   ansible.builtin.set_fact:
     running_virtual_machines: "{{ running_virtual_machines | default([]) + [libvirt_provision_virtual_machine_config | combine(item) |
@@ -30,12 +42,11 @@
 - name: Find unique cloud images to download, and ready to download
   ansible.builtin.set_fact:
     cloud_images_unique: "{{ cloud_images_information.results | map(attribute='ansible_facts') | unique | list }}"
-    temp_folder: /tmp
 
 - name: Download local copy of cloud images
   ansible.builtin.get_url:
     url: "{{ item.cloud_image_url }}"
-    dest: "{{ temp_folder }}/{{ item.cloud_image_name }}"
+    dest: "{{ libvirt_provision_temp_path }}/{{ item.cloud_image_name }}"
     mode: '0644'
     checksum: "{{ item.cloud_image_sha | default(omit) }}"
   loop: "{{ cloud_images_unique }}"
@@ -81,7 +92,7 @@
       - "{{ libvirt_provision_connection }}"
       - vol-upload
       - "{{ item.item.name }}.qcow2"
-      - "{{ temp_folder }}/{{ libvirt_provision_distros[item.item.distro]['url'] | basename }}"
+      - "{{ libvirt_provision_temp_path }}/{{ libvirt_provision_distros[item.item.distro]['url'] | basename }}"
       - --sparse
       - --pool
       - "{{ libvirt_provision_storage_pool }}"
@@ -114,6 +125,7 @@
 
 - name: Create temporary root password file
   ansible.builtin.tempfile:
+    path: '{{ libvirt_provision_temp_path }}'
     state: file
     suffix: ansible
   register: temp_root_password
@@ -131,6 +143,7 @@
 
 - name: Create temporary ssh key file
   ansible.builtin.tempfile:
+    path: '{{ libvirt_provision_temp_path }}'
     state: file
     suffix: ansible
   register: temp_ssh_key
@@ -148,6 +161,7 @@
 
 - name: Create temporary network config file
   ansible.builtin.tempfile:
+    path: '{{ libvirt_provision_temp_path }}'
     state: file
     suffix: ansible
   register: temp_net_config

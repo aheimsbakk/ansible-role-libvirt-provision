@@ -11,6 +11,7 @@ Predefined distros:
 
 ## Versions
 
+- `1.1.0` --- added ability to use custom temp path
 - `1.0.0` --- initial version
 
 ## Requirements
@@ -50,9 +51,10 @@ Tested with `ansible-core = "~=2.20.0"`.
 - `libvirt_provision_storage_pool` --- Libvirt storage pool for VM disks, default `default`.
 - `libvirt_provision_root_ssh_key` --- SSH key to inject for root, default not set.
 - `libvirt_provision_root_password` --- Root user password, default not set.
-- `libvirt_provision_virtual_machine_config` --- Default VM configuration, can be overridden. Defaults, see [main.yml](defaults/main.yml).
-- `libvirt_provision_virtual_machine_net_config` --- Valid cloud image network config. Defaults, see [main.yml](defaults/main.yml).
-- `libvirt_provision_virtual_machines` --- List of virtual machines to create. Default, see below. For more advanced setup, see [test.yml](tests/test.yml).
+- `libvirt_provision_temp_path` --- Temp folder to store images and temporary files, defaults `/tmp`.
+- `libvirt_provision_virtual_machine_config` --- Default VM configuration, see [main.yml](defaults/main.yml).
+- `libvirt_provision_virtual_machine_net_config` --- Default cloud image network, see [main.yml](defaults/main.yml).
+- `libvirt_provision_virtual_machines` --- List of virtual machines to create. Defaults, see below. For more advanced setup, see [test.yml](tests/test.yml).
     ```yaml
     - name: my-trixie-vm
       distro: trixie

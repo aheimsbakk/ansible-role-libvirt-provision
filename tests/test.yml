@@ -1,19 +1,21 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 ---
-- hosts: all
+- name: Create three VMs for testing role
+  hosts: localhost
 
   pre_tasks:
     - name: Set variables that need to be set on localhost
       ansible.builtin.set_fact:
-        libvirt_provision_root_ssh_key: "{{ lookup('file', lookup('env', 'HOME') + '/.ssh/id_ed25519.pub') }}"
+        libvirt_provision_root_ssh_key: '{{ lookup("file", lookup("env", "HOME") + "/.ssh/id_ed25519.pub") }}'
       delegate_to: localhost
 
   roles:
-    - role: ../..
+    - name: ../..
       vars:
         # Don't define password if you're working with remote VMs.
         # Then use only the SSH key. Keep safe.
         libvirt_provision_root_password: root
+        libvirt_provision_temp_path: '{{ lookup("env", "HOME") + "/tmp" }}'
         libvirt_provision_virtual_machines:
           - name: trixie01
             memory_mb: 2000
