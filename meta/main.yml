@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
+---
 galaxy_info:
   author: Arnulf Heimsbakk
-  description: Create simple reproducable VMs using virsh and community.libvirt
+  description: Create simple reproducible VMs using virsh and community.libvirt
   company: None
 
   role_name: libvirt_provision
