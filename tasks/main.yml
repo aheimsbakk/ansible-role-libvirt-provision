@@ -123,67 +123,41 @@
     - state == "present"
     - item.rc == 0
 
-- name: Create temporary root password file
-  ansible.builtin.tempfile:
-    path: '{{ libvirt_provision_temp_path }}'
-    state: file
-    suffix: ansible
-  register: temp_root_password
-  when:
-    - libvirt_provision_root_password is defined
-    - libvirt_provision_root_password is not none
-
 - name: Populate temporary root password file
   ansible.builtin.copy:
-    dest: "{{ temp_root_password.path }}"
+    dest: '{{ lookup("pipe", "mktemp -u " + libvirt_provision_temp_path + "/ansible.XXXXXX") }}'
     mode: "0600"
     content: |
       {{ libvirt_provision_root_password }}
-  when: temp_root_password.path is defined
-
-- name: Create temporary ssh key file
-  ansible.builtin.tempfile:
-    path: '{{ libvirt_provision_temp_path }}'
-    state: file
-    suffix: ansible
-  register: temp_ssh_key
-  when:
-    - libvirt_provision_root_ssh_key is defined
-    - libvirt_provision_root_ssh_key is not none
+  register: temp_root_password
 
 - name: Populate temporary ssh key file
   ansible.builtin.copy:
-    dest: "{{ temp_ssh_key.path }}"
+    dest: '{{ lookup("pipe", "mktemp -u " + libvirt_provision_temp_path + "/ansible.XXXXXX") }}'
     mode: "0600"
     content: |
       {{ libvirt_provision_root_ssh_key }}
-  when: temp_ssh_key.path is defined
-
-- name: Create temporary network config file
-  ansible.builtin.tempfile:
-    path: '{{ libvirt_provision_temp_path }}'
-    state: file
-    suffix: ansible
-  register: temp_net_config
-  loop: "{{ running_virtual_machines }}"
-  loop_control:
-    label: '{{ item.name }}'
-  when:
-    - item.net_config is defined
-    - item.net_config != {}
+  register: temp_ssh_key
 
 - name: Populate temporary network config file
   ansible.builtin.copy:
-    dest: "{{ item.path }}"
+    dest: '{{ lookup("pipe", "mktemp -u " + libvirt_provision_temp_path + "/ansible.XXXXXX") }}'
     mode: "0600"
     content: |
-      {{ item.item.net_config | to_nice_yaml }}
-  loop: "{{ temp_net_config.results }}"
+      {{ item.net_config | to_nice_yaml }}
+  loop: "{{ running_virtual_machines }}"
   loop_control:
-    label: '{{ item.item.name }}'
-  when:
-    - item.path is defined
-    - item.item.net_config | default({}) != {}
+    label: '{{ item.name }}'
+  register: temp_net_config
+
+- name: Store all temp file names
+  ansible.builtin.set_fact:
+    temp_files: '{{ (temp_net_config.results + [temp_root_password, temp_ssh_key]) | selectattr("dest", "defined") | map(attribute="dest") | list }}'
+
+- name: Wait for all temp files to exist, avoid race condition on fast computers
+  ansible.builtin.wait_for:
+    path: '{{ item }}'
+  loop: '{{ temp_files }}'
 
 - name: Create VMs
   community.libvirt.virt_install:
@@ -202,9 +176,9 @@
           discard: unmap
     cloud_init:
       disable: true
-      root_ssh_key: "{{ temp_ssh_key.path | default(omit) }}"
-      network_config: "{{ item.path | default(omit) }}"
-      root_password_file: "{{ temp_root_password.path | default(omit) }}"
+      root_ssh_key: "{{ temp_ssh_key.dest | default(omit) }}"
+      network_config: "{{ item.dest | default(omit) }}"
+      root_password_file: "{{ temp_root_password.dest | default(omit) }}"
     networks: "{{ item.item.networks | default(omit) }}"
     graphics:
       type: none
@@ -224,6 +198,12 @@
   when:
     - item.msg is defined
 
+- name: Remove all temp files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop: "{{ temp_files }}"
+
 - name: Undefine VMs
   community.libvirt.virt:
     uri: "{{ libvirt_provision_connection }}"
@@ -236,24 +216,3 @@
     label: '{{ item.item.name }}'
   failed_when: false
   when: state == "absent"
-
-- name: Remove temporary root password file
-  ansible.builtin.file:
-    path: "{{ temp_root_password.path }}"
-    state: absent
-  when: temp_root_password.path is defined
-
-- name: Remove temporary ssh key file
-  ansible.builtin.file:
-    path: "{{ temp_ssh_key.path }}"
-    state: absent
-  when: temp_ssh_key.path is defined
-
-- name: Remove temporary network config file
-  ansible.builtin.file:
-    path: "{{ item.path }}"
-    state: absent
-  loop: "{{ temp_net_config.results }}"
-  loop_control:
-    label: '{{ item.item.name }}'
-  when: item.path is defined
