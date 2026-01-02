@@ -11,6 +11,7 @@ Predefined distros:
 
 ## Versions
 
+- `1.2.0` --- avoid race condition with temp files
 - `1.1.0` --- added ability to use custom temp path
 - `1.0.0` --- initial version
 
