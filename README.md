@@ -119,11 +119,11 @@ collections:
 
 ## Testing
 
-Enter the role and install requirements.
+Enter the role and install requirements. Uncomment `--python 3` if you python version does not match Pipfile.
 
 ```bash
 mkdir .venv
-pipenv install
+pipenv install  # --python 3
 pipenv shell
 ansible-galaxy install -r tests/collections.yml
 cd tests
