@@ -9,7 +9,7 @@
       delegate_to: localhost
 
   roles:
-    - name: ../..
+    - role: ../..
       vars:
         # Don't define password if you're working with remote VMs.
         # Then use only the SSH key. Keep safe.
