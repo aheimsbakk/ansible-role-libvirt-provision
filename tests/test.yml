@@ -5,7 +5,7 @@
   pre_tasks:
     - name: Set variables that need to be set on localhost
       ansible.builtin.set_fact:
-        libvirt_provision_root_ssh_key: '{{ lookup("file", lookup("env", "HOME") + "/.ssh/id_ed25519.pub") }}'
+        libvirt_provision_root_ssh_key: '{{ libvirt_provision_root_ssh_key | default(lookup("file", lookup("env", "HOME") + "/.ssh/id_ed25519.pub")) }}'
       delegate_to: localhost
 
   roles:
@@ -26,12 +26,12 @@
                 enp1s0:
                   addresses:
                     - 192.168.122.11/24
-          - name: trixie02
-            memory_mb: 1500
-            distro: trixie
+          - name: rocky01
+            memory_mb: 2000
+            distro: rocky10
             net_config:
               ethernets:
-                enp1s0:
+                ens3:
                   addresses:
                     - 192.168.122.12/24
           - name: ubuntu01

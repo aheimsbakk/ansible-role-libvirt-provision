@@ -18,11 +18,11 @@ libvirt_provision_distros:
   trixie:
     url: https://cloud.debian.org/images/cloud/trixie/latest/debian-13-generic-amd64.qcow2
     os_variant: debian13
-    boot: uefi
+    # boot: uefi
   noble:
     url: https://cloud-images.ubuntu.com/minimal/daily/noble/current/noble-minimal-cloudimg-amd64.img
     os_variant: ubuntu24.04
-    boot: uefi
+    boot: none
   rocky10:
     url: https://dl.rockylinux.org/pub/rocky/10/images/x86_64/Rocky-10-GenericCloud-Base.latest.x86_64.qcow2
     os_variant: rocky-unknown
@@ -60,7 +60,6 @@ libvirt_provision_virtual_machine_config:
     - bridge: virbr0
       model:
         type: virtio
-  net_config: {}
 
 # Set default SSH key to use for connecting to machine as root.
 libvirt_provision_root_ssh_key:
