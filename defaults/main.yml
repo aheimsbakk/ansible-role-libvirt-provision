@@ -18,19 +18,23 @@ libvirt_provision_distros:
   trixie:
     url: https://cloud.debian.org/images/cloud/trixie/latest/debian-13-generic-amd64.qcow2
     os_variant: debian13
-    # boot: uefi
+    boot: uefi
   noble:
     url: https://cloud-images.ubuntu.com/minimal/daily/noble/current/noble-minimal-cloudimg-amd64.img
     os_variant: ubuntu24.04
     boot: none
-  rocky10:
-    url: https://dl.rockylinux.org/pub/rocky/10/images/x86_64/Rocky-10-GenericCloud-Base.latest.x86_64.qcow2
-    os_variant: rocky-unknown
-    boot: uefi
-  rocky9:
-    url: https://dl.rockylinux.org/pub/rocky/9/images/x86_64/Rocky-9-GenericCloud.latest.x86_64.qcow2
-    os_variant: rocky9
-    boot: uefi
+  alma8:
+    url: https://almalinux.uib.no/8/cloud/x86_64/images/AlmaLinux-8-GenericCloud-latest.x86_64.qcow2
+    os_variant: almalinux8
+    boot: none
+  alma9:
+    url: https://almalinux.uib.no/9/cloud/x86_64/images/AlmaLinux-9-GenericCloud-latest.x86_64.qcow2
+    os_variant: almalinux9
+    boot: menu=on
+  alma10:
+    url: https://almalinux.uib.no/10/cloud/x86_64_v2/images/AlmaLinux-10-GenericCloud-latest.x86_64_v2.qcow2
+    os_variant: almalinux10
+    boot: menu=on
 
 # Default network config for a virtual machine.
 # Machine can override everything.
@@ -42,7 +46,7 @@ libvirt_provision_virtual_machine_net_config:
       addresses:
         - 192.168.122.10/24
       routes:
-        - to: default
+        - to: 0.0.0.0/0
           via: 192.168.122.1
       nameservers:
         addresses:

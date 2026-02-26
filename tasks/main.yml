@@ -165,8 +165,9 @@
           discard: unmap
     cloud_init:
       disable: true
-      root_ssh_key: "{{ temp_ssh_key.dest | default(omit) }}"
+      clouduser_ssh_key: "{{ temp_ssh_key.dest | default(omit) }}"
       network_config: "{{ item.net_config | default(omit) }}"
+      # {{ item.net_config | to_nice_yaml(indent=2) | default(omit) }}
       root_password_file: "{{ temp_root_password.dest | default(omit) }}"
     networks: "{{ item.networks | default(omit) }}"
     graphics:
