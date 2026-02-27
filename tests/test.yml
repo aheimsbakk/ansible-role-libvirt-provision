@@ -3,19 +3,23 @@
   hosts: localhost
 
   pre_tasks:
+    - name: Check if we have an id_ed25519 ssh key
+      ansible.builtin.stat:
+        path: '{{ lookup("env", "HOME") + "/.ssh/id_ed25519.pub" }}'
+      register: ssh_key_stat
+      delegate_to: localhost
+
     - name: Set variables that need to be set on localhost
       ansible.builtin.set_fact:
-        libvirt_provision_root_ssh_key: '{{ libvirt_provision_root_ssh_key | default(lookup("file", lookup("env", "HOME") + "/.ssh/id_ed25519.pub")) }}'
+        libvirt_provision_root_ssh_key: '{{ lookup("file", lookup("env", "HOME") + "/.ssh/id_ed25519.pub") }}'
       delegate_to: localhost
+      when: ssh_key_stat.stat.exists
 
   roles:
     - name: ../..
       vars:
         # Don't define password if you're working with remote VMs.
         # Then use only the SSH key. Keep safe.
-
-        libvirt_provision_virtual_machine_net_config:
-          version: 2
 
         libvirt_provision_root_password: root
         libvirt_provision_temp_path: '{{ lookup("env", "HOME") + "/tmp" }}'
@@ -26,15 +30,25 @@
           #   vcpus: 2
           #   distro: trixie
           #   net_config:
+          #     version: 2
           #     ethernets:
           #       enp1s0:
+          #         dhcp4: false
           #         addresses:
           #           - 192.168.122.11/24
+          #         routes:
+          #           - to: 0.0.0.0/0
+          #             via: 192.168.122.1
+          #         nameservers:
+          #           addresses:
+          #             - 1.1.1.1
+          #             - 8.8.8.8
           - name: alma01
             memory_mb: 3000
-            distro: alma10
+            distro: alma8
             vcpus: 2
             net_config:
+              version: 2
               ethernets:
                 eth0:
                   addresses:
@@ -48,5 +62,3 @@
                       - 8.8.8.8
           # - name: ubuntu01
           #   distro: noble
-          #   # Undefine networks, run with libvirt defaults
-          #   networks:
