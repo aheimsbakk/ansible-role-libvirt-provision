@@ -18,34 +18,31 @@
   roles:
     - name: ../..
       vars:
-        # Don't define password if you're working with remote VMs.
-        # Then use only the SSH key. Keep safe.
-
         libvirt_provision_root_password: root
         libvirt_provision_temp_path: '{{ lookup("env", "HOME") + "/tmp" }}'
         libvirt_provision_virtual_machines:
-          # - name: trixie01
-          #   memory_mb: 2000
-          #   disk_gb: 20
-          #   vcpus: 2
-          #   distro: trixie
-          #   net_config:
-          #     version: 2
-          #     ethernets:
-          #       enp1s0:
-          #         dhcp4: false
-          #         addresses:
-          #           - 192.168.122.11/24
-          #         routes:
-          #           - to: 0.0.0.0/0
-          #             via: 192.168.122.1
-          #         nameservers:
-          #           addresses:
-          #             - 1.1.1.1
-          #             - 8.8.8.8
+          - name: trixie01
+            memory_mb: 2000
+            disk_gb: 20
+            vcpus: 2
+            distro: trixie
+            net_config:
+              version: 2
+              ethernets:
+                enp1s0:
+                  dhcp4: false
+                  addresses:
+                    - 192.168.122.11/24
+                  routes:
+                    - to: 0.0.0.0/0
+                      via: 192.168.122.1
+                  nameservers:
+                    addresses:
+                      - 1.1.1.1
+                      - 8.8.8.8
           - name: alma01
             memory_mb: 3000
-            distro: alma8
+            distro: alma10
             vcpus: 2
             net_config:
               version: 2
@@ -60,5 +57,5 @@
                     addresses:
                       - 1.1.1.1
                       - 8.8.8.8
-          # - name: ubuntu01
-          #   distro: noble
+          - name: ubuntu01
+            distro: noble
