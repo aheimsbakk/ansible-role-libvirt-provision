@@ -4,10 +4,11 @@ Create simple reproducable VMs using [libvirt](https://www.libvirt.org/) `virsh`
 
 Predefined distros:
 
-- trixie (tested)
-- noble  (tested)
-- rocky9
-- rocky10
+- `trixie`
+- `noble`
+- `alma8`
+- `alma9`
+- `alma10`
 
 ## Versions
 
@@ -50,8 +51,6 @@ Tested with `ansible-core = "~=2.20.0"`.
     - `os_variant` ---  Valid `virt-install --os-variant list` OS short-name.
     - `boot` --- Boot mode, most common `uefi`.
     - `sha` --- Optional checksum of image.
-    
-    Default distros defined: `trixie`, `noble`, `alma8`, `alma9`, `alma10`.
 - `libvirt_provision_storage_pool` --- Libvirt storage pool for VM disks, default `default`.
 - `libvirt_provision_root_ssh_key` --- SSH key to inject for root, default not set.
 - `libvirt_provision_root_password` --- Root user password for console usage, default not set.
