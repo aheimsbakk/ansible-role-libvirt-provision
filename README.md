@@ -12,6 +12,7 @@ Predefined distros:
 
 ## Versions
 
+- `2.0.1` --- fix linting
 - `2.0.0` --- rework after community.libvirt had a breaking change on minor
 - `1.2.0` --- avoid race condition with temp files
 - `1.1.0` --- added ability to use custom temp path

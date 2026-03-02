@@ -16,7 +16,7 @@
       when: ssh_key_stat.stat.exists
 
   roles:
-    - name: ../..
+    - role: ../..  # noqa role-name[path]
       vars:
         libvirt_provision_root_password: root
         libvirt_provision_temp_path: '{{ lookup("env", "HOME") + "/tmp" }}'
