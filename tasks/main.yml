@@ -14,8 +14,7 @@
 
 - name: Combine default and custom config for VMs with network net_config
   ansible.builtin.set_fact:
-    running_virtual_machines: "{{ running_virtual_machines | default([]) + [libvirt_provision_virtual_machine_config | combine(item) |
-      combine({'net_config': libvirt_provision_virtual_machine_net_config}) | combine(item, recursive=True)] }}"
+    running_virtual_machines: "{{ running_virtual_machines | default([]) + [libvirt_provision_virtual_machine_config | combine(item)] }}"
   loop: "{{ libvirt_provision_virtual_machines }}"
   loop_control:
     label: '{{ item.name }}'
@@ -23,7 +22,10 @@
 
 - name: Combine default and custom config for the rest
   ansible.builtin.set_fact:
-    running_virtual_machines: "{{ running_virtual_machines | default([]) + [libvirt_provision_virtual_machine_config | combine(item)] }}"
+    running_virtual_machines: >-
+      {{ running_virtual_machines | default([]) +
+      [libvirt_provision_virtual_machine_config |
+      combine(libvirt_provision_virtual_machine_net_config) | combine(item)] }}
   loop: "{{ libvirt_provision_virtual_machines }}"
   loop_control:
     label: '{{ item.name }}'
@@ -123,69 +125,46 @@
     - state == "present"
     - item.rc == 0
 
-- name: Populate temporary root password file
-  ansible.builtin.copy:
-    dest: '{{ lookup("pipe", "mktemp -u " + libvirt_provision_temp_path + "/ansible.XXXXXX") }}'
-    mode: "0600"
-    content: |
-      {{ libvirt_provision_root_password }}
-  register: temp_root_password
-
-- name: Populate temporary ssh key file
-  ansible.builtin.copy:
-    dest: '{{ lookup("pipe", "mktemp -u " + libvirt_provision_temp_path + "/ansible.XXXXXX") }}'
-    mode: "0600"
-    content: |
-      {{ libvirt_provision_root_ssh_key }}
-  register: temp_ssh_key
-
-- name: Populate temporary network config file
-  ansible.builtin.copy:
-    dest: '{{ lookup("pipe", "mktemp -u " + libvirt_provision_temp_path + "/ansible.XXXXXX") }}'
-    mode: "0600"
-    content: |
-      {{ item.net_config | to_nice_yaml }}
-  loop: "{{ running_virtual_machines }}"
-  loop_control:
-    label: '{{ item.name }}'
-  register: temp_net_config
-
-- name: Store all temp file names
-  ansible.builtin.set_fact:
-    temp_files: '{{ (temp_net_config.results + [temp_root_password, temp_ssh_key]) | selectattr("dest", "defined") | map(attribute="dest") | list }}'
-
-- name: Wait for all temp files to exist, avoid race condition on fast computers
-  ansible.builtin.wait_for:
-    path: '{{ item }}'
-  loop: '{{ temp_files }}'
-
 - name: Create VMs
   community.libvirt.virt_install:
     uri: "{{ libvirt_provision_connection }}"
-    name: "{{ item.item.name }}"
-    memory: "{{ item.item.memory_mb }}"
-    vcpus: "{{ item.item.vcpus }}"
+    name: "{{ item.name }}"
+    memory: "{{ item.memory_mb }}"
+    vcpus: "{{ item.vcpus }}"
     import: true
     osinfo:
-      name: "{{ libvirt_provision_distros[item.item.distro]['os_variant'] }}"
-    boot: "{{ libvirt_provision_distros[item.item.distro]['boot'] | default(omit) }}"
+      name: "{{ libvirt_provision_distros[item.distro]['os_variant'] }}"
+    boot: "{{ libvirt_provision_distros[item.distro]['boot'] | default(omit) }}"
     disks:
-      - vol: "{{ libvirt_provision_storage_pool }}/{{ item.item.name }}.qcow2"
+      - vol: "{{ libvirt_provision_storage_pool }}/{{ item.name }}.qcow2"
         bus: virtio
         driver:
           discard: unmap
     cloud_init:
       disable: true
-      root_ssh_key: "{{ temp_ssh_key.dest | default(omit) }}"
-      network_config: "{{ item.dest | default(omit) }}"
-      root_password_file: "{{ temp_root_password.dest | default(omit) }}"
-    networks: "{{ item.item.networks | default(omit) }}"
+      network_config: "{{ item.net_config | default(omit) }}"
+      user_data: |
+        #cloud-config
+        ssh_pwauth: False
+        disable_root: False
+
+        users:
+          - name: root
+            ssh_authorized_keys:
+              - {{ libvirt_provision_root_ssh_key }}
+            lock_passwd: false
+
+        chpasswd:
+          list: |
+            root:{{ libvirt_provision_root_password }}
+          expire: False
+    networks: "{{ item.networks | default(omit) }}"
     graphics:
       type: none
     state: "{{ state }}"
-  loop: "{{ temp_net_config.results }}"
+  loop: "{{ running_virtual_machines }}"
   loop_control:
-    label: '{{ item.item.name }}'
+    label: '{{ item.name }}'
   register: cmd_virt_install
   failed_when: false
 
@@ -194,25 +173,19 @@
     msg: "{{ item.msg }}"
   loop: "{{ cmd_virt_install.results }}"
   loop_control:
-    label: '{{ item.item.item.name }}'
+    label: '{{ item.item.name }}'
   when:
     - item.msg is defined
-
-- name: Remove all temp files
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: absent
-  loop: "{{ temp_files }}"
 
 - name: Undefine VMs
   community.libvirt.virt:
     uri: "{{ libvirt_provision_connection }}"
-    name: "{{ item.item.name }}"
+    name: "{{ item.name }}"
     command: undefine
     flags:
       - nvram
-  loop: "{{ temp_net_config.results }}"
+  loop: "{{ running_virtual_machines }}"
   loop_control:
-    label: '{{ item.item.name }}'
+    label: '{{ item.name }}'
   failed_when: false
   when: state == "absent"
