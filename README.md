@@ -11,6 +11,7 @@ Predefined distros:
 
 ## Versions
 
+- `2.0.0` --- rework after community.libvirt had a breaking change on minor
 - `1.2.0` --- avoid race condition with temp files
 - `1.1.0` --- added ability to use custom temp path
 - `1.0.0` --- initial version
@@ -49,9 +50,11 @@ Tested with `ansible-core = "~=2.20.0"`.
     - `os_variant` ---  Valid `virt-install --os-variant list` OS short-name.
     - `boot` --- Boot mode, most common `uefi`.
     - `sha` --- Optional checksum of image.
+    
+    Default distros defined: `trixie`, `noble`, `alma8`, `alma9`, `alma10`.
 - `libvirt_provision_storage_pool` --- Libvirt storage pool for VM disks, default `default`.
 - `libvirt_provision_root_ssh_key` --- SSH key to inject for root, default not set.
-- `libvirt_provision_root_password` --- Root user password, default not set.
+- `libvirt_provision_root_password` --- Root user password for console usage, default not set.
 - `libvirt_provision_temp_path` --- Temp folder to store images and temporary files, defaults `/tmp`.
 - `libvirt_provision_virtual_machine_config` --- Default VM configuration, see [main.yml](defaults/main.yml).
 - `libvirt_provision_virtual_machine_net_config` --- Default cloud image network, see [main.yml](defaults/main.yml).
@@ -87,34 +90,49 @@ collections:
       delegate_to: localhost
 
   roles:
-    - role: ../..
+    - role: aheimsbakk.libvirt_provision
       vars:
-        # Don't define password if you're working with remote VMs.
-        # Then use only the SSH key. Keep safe.
         libvirt_provision_root_password: root
+        libvirt_provision_temp_path: '{{ lookup("env", "HOME") + "/tmp" }}'
         libvirt_provision_virtual_machines:
           - name: trixie01
+            distro: trixie
             memory_mb: 2000
             disk_gb: 20
             vcpus: 2
-            distro: trixie
             net_config:
+              version: 2
               ethernets:
                 enp1s0:
+                  dhcp4: false
                   addresses:
                     - 192.168.122.11/24
-          - name: trixie02
-            memory_mb: 1500
-            distro: trixie
+                  routes:
+                    - to: 0.0.0.0/0
+                      via: 192.168.122.1
+                  nameservers:
+                    addresses:
+                      - 1.1.1.1
+                      - 8.8.8.8
+          - name: alma01
+            distro: alma10
+            memory_mb: 3000
+            vcpus: 2
             net_config:
+              version: 2
               ethernets:
-                enp1s0:
+                eth0:
                   addresses:
                     - 192.168.122.12/24
+                  routes:
+                    - to: 0.0.0.0/0
+                      via: 192.168.122.1
+                  nameservers:
+                    addresses:
+                      - 1.1.1.1
+                      - 8.8.8.8
           - name: ubuntu01
             distro: noble
-            # Undefine networks, run with libvirt defaults
-            networks:
 ```
 
 ## Testing
