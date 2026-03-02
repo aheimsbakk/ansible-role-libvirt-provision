@@ -12,6 +12,7 @@ Predefined distros:
 
 ## Versions
 
+- `2.0.2` --- moved from aheimsbakk to metno organization 
 - `2.0.1` --- fix linting
 - `2.0.0` --- rework after community.libvirt had a breaking change on minor
 - `1.2.0` --- avoid race condition with temp files
@@ -90,7 +91,7 @@ collections:
       delegate_to: localhost
 
   roles:
-    - role: aheimsbakk.libvirt_provision
+    - role: metno.libvirt_provision
       vars:
         libvirt_provision_root_password: root
         libvirt_provision_temp_path: '{{ lookup("env", "HOME") + "/tmp" }}'

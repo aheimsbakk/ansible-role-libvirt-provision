@@ -6,7 +6,7 @@ galaxy_info:
   company: None
 
   role_name: libvirt_provision
-  namespace: aheimsbakk
+  namespace: metno
 
   license: GPL-2.0-or-later
 
