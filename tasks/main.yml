@@ -125,6 +125,123 @@
     - state == "present"
     - item.rc == 0
 
+- name: Create private build folder for cloud-init seed per virtual machine
+  ansible.builtin.tempfile:
+    state: directory
+    path: '{{ libvirt_provision_temp_path }}'
+    prefix: '{{ item.name }}-seed-'
+  loop: "{{ running_virtual_machines }}"
+  loop_control:
+    label: '{{ item.name }}'
+  register: seed_build_folders
+  when: state == "present"
+
+- name: Collect cloud-init seed build folders
+  ansible.builtin.set_fact:
+    seed_builds: "{{ seed_builds | default([]) + [{'vm': item.item, 'folder': item.path}] }}"
+  loop: "{{ seed_build_folders.results }}"
+  loop_control:
+    label: '{{ item.item.name }}'
+  when: state == "present"
+
+- name: Build and upload cloud-init seed per virtual machine
+  when: state == "present"
+  block:
+    - name: Create cloud-init user-data
+      ansible.builtin.template:
+        src: user-data.j2
+        dest: '{{ item.folder }}/user-data'
+        mode: '0600'
+      loop: "{{ seed_builds }}"
+      loop_control:
+        label: '{{ item.vm.name }}'
+
+    - name: Create cloud-init network-config
+      ansible.builtin.template:
+        src: network-config.j2
+        dest: '{{ item.folder }}/network-config'
+        mode: '0600'
+      loop: "{{ seed_builds }}"
+      loop_control:
+        label: '{{ item.vm.name }}'
+      when: item.vm.net_config is defined
+
+    - name: Create cloud-init meta-data
+      ansible.builtin.template:
+        src: meta-data.j2
+        dest: '{{ item.folder }}/meta-data'
+        mode: '0600'
+      loop: "{{ seed_builds }}"
+      loop_control:
+        label: '{{ item.vm.name }}'
+
+    - name: Build cloud-init seed ISO
+      ansible.builtin.command:
+        cmd: >-
+          xorriso -as mkisofs
+          -output '{{ item.folder }}/seed.iso'
+          -volid cidata -joliet -rock
+          meta-data user-data{{ ' network-config' if item.vm.net_config is defined else '' }}
+        chdir: '{{ item.folder }}'
+      loop: "{{ seed_builds }}"
+      loop_control:
+        label: '{{ item.vm.name }}-seed.iso'
+      changed_when: false
+
+    - name: Get size of cloud-init seed ISO
+      ansible.builtin.stat:
+        path: '{{ item.folder }}/seed.iso'
+      loop: "{{ seed_builds }}"
+      loop_control:
+        label: '{{ item.vm.name }}-seed.iso'
+      register: seed_iso_stat
+
+    - name: Create seed ISO placeholder in storage pool
+      ansible.builtin.command:
+        argv:
+          - virsh
+          - --connect
+          - "{{ libvirt_provision_connection }}"
+          - vol-create-as
+          - "{{ libvirt_provision_storage_pool }}"
+          - "{{ item.item.vm.name }}-seed.iso"
+          - "{{ item.stat.size }}"
+          - --format
+          - raw
+      loop: "{{ seed_iso_stat.results }}"
+      loop_control:
+        label: '{{ item.item.vm.name }}-seed.iso'
+      register: seed_iso_placeholder
+      ignore_errors: true
+      failed_when: false
+      changed_when: false
+
+    - name: Upload cloud-init seed ISO into placeholder
+      ansible.builtin.command:
+        argv:
+          - virsh
+          - --connect
+          - "{{ libvirt_provision_connection }}"
+          - vol-upload
+          - "{{ item.item.item.vm.name }}-seed.iso"
+          - "{{ item.item.item.folder }}/seed.iso"
+          - --pool
+          - "{{ libvirt_provision_storage_pool }}"
+      loop: "{{ seed_iso_placeholder.results }}"
+      loop_control:
+        label: '{{ item.item.item.vm.name }}-seed.iso'
+      changed_when: true
+      when: item.rc == 0
+
+  always:
+    - name: Remove private build folders for cloud-init seed
+      ansible.builtin.file:
+        path: '{{ item.folder }}'
+        state: absent
+      loop: "{{ seed_builds | default([]) }}"
+      loop_control:
+        label: '{{ item.vm.name }}'
+
 - name: Create VMs
   community.libvirt.virt_install:
     uri: "{{ libvirt_provision_connection }}"
@@ -140,24 +257,9 @@
         bus: virtio
         driver:
           discard: unmap
-    cloud_init:
-      disable: true
-      network_config: "{{ item.net_config | default(omit) }}"
-      user_data: |
-        #cloud-config
-        ssh_pwauth: False
-        disable_root: False
-
-        users:
-          - name: root
-            ssh_authorized_keys:
-              - {{ libvirt_provision_root_ssh_key }}
-            lock_passwd: false
-
-        chpasswd:
-          list: |
-            root:{{ libvirt_provision_root_password }}
-          expire: False
+      - vol: "{{ libvirt_provision_storage_pool }}/{{ item.name }}-seed.iso"
+        bus: virtio
+        readonly: true
     networks: "{{ item.networks | default(omit) }}"
     graphics:
       type: none

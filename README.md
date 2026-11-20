@@ -12,6 +12,7 @@ Predefined distros:
 
 ## Versions
 
+- `2.1.0` --- build cloud-init seed in a private temp folder and upload it as volume, add `libvirt_provision_disable_root_password`, set guest hostname from VM name. Requires `xorriso` on the host.
 - `2.0.2` --- moved from aheimsbakk to metno organization 
 - `2.0.1` --- fix linting
 - `2.0.0` --- rework after community.libvirt had a breaking change on minor
@@ -29,7 +30,7 @@ Required Python packages on all machines the role runs on:
 Install on Debian:
 
 ```bash
-sudo apt install python3-libvirt python3-lxml
+sudo apt install python3-libvirt python3-lxml xorriso
 ```
 
 ### OS compatibility
@@ -56,6 +57,7 @@ Tested with `ansible-core = "~=2.20.0"`.
 - `libvirt_provision_storage_pool` --- Libvirt storage pool for VM disks, default `default`.
 - `libvirt_provision_root_ssh_key` --- SSH key to inject for root, default not set.
 - `libvirt_provision_root_password` --- Root user password for console usage, default not set.
+- `libvirt_provision_disable_root_password` --- Do not set a root password, root logs in with the SSH key only, default `false`.
 - `libvirt_provision_temp_path` --- Temp folder to store images and temporary files, defaults `/tmp`.
 - `libvirt_provision_virtual_machine_config` --- Default VM configuration, see [main.yml](defaults/main.yml).
 - `libvirt_provision_virtual_machine_net_config` --- Default cloud image network, see [main.yml](defaults/main.yml).

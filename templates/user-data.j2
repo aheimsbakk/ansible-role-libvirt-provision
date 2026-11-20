@@ -1,0 +1,16 @@
+#cloud-config
+ssh_pwauth: False
+disable_root: False
+
+users:
+  - name: root
+    ssh_authorized_keys:
+      - {{ libvirt_provision_root_ssh_key }}
+    lock_passwd: {{ 'true' if libvirt_provision_disable_root_password else 'false' }}
+{% if not libvirt_provision_disable_root_password %}
+
+chpasswd:
+  list: |
+    root:{{ libvirt_provision_root_password }}
+  expire: False
+{% endif %}
