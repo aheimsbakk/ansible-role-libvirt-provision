@@ -12,6 +12,7 @@ Predefined distros:
 
 ## Versions
 
+- `2.1.0` --- build cloud-init seed in a private temp folder and upload it as volume, add `libvirt_provision_disable_root_password`, set guest hostname from VM name. Requires `xorriso` on the host.
 - `2.0.2` --- moved from aheimsbakk to metno organization 
 - `2.0.1` --- fix linting
 - `2.0.0` --- rework after community.libvirt had a breaking change on minor
