@@ -62,6 +62,9 @@ libvirt_provision_root_ssh_key:
 # Set default root password for connecting to machine as root.
 libvirt_provision_root_password:
 
+# Do not set a root password. Root can still log in with the SSH key.
+libvirt_provision_disable_root_password: false
+
 # Define virtual machines to create.
 # Defaults to one machine without specific bridge or net_config.
 libvirt_provision_virtual_machines:
