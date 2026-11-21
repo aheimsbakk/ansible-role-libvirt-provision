@@ -31,12 +31,32 @@
     label: '{{ item.name }}'
   when: item.net_config | default({}) == {}
 
+- name: List existing domains, defined and running
+  ansible.builtin.command:
+    argv:
+      - virsh
+      - --connect
+      - "{{ libvirt_provision_connection }}"
+      - list
+      - --all
+      - --name
+  register: existing_domains_raw
+  changed_when: false
+
+- name: Determine which virtual machines still need to be created
+  ansible.builtin.set_fact:
+    existing_domains: "{{ existing_domains_raw.stdout_lines | map('trim') | select | list }}"
+    new_virtual_machines: >-
+      {{ running_virtual_machines
+         | rejectattr('name', 'in', existing_domains_raw.stdout_lines | map('trim') | select | list)
+         | list }}
+
 - name: Set temporary variables for cloud image information
   ansible.builtin.set_fact:
     cloud_image_name: "{{ libvirt_provision_distros[item.distro]['url'] | basename }}"
     cloud_image_url: "{{ libvirt_provision_distros[item.distro]['url'] }}"
     cloud_image_sha: "{{ libvirt_provision_distros[item.distro]['sha'] | default(omit) }}"
-  loop: "{{ running_virtual_machines }}"
+  loop: "{{ new_virtual_machines }}"
   loop_control:
     label: '{{ item.name }}'
   register: cloud_images_information
@@ -67,7 +87,7 @@
       - "{{ item.disk_gb }}G"
       - --format
       - qcow2
-  loop: "{{ running_virtual_machines }}"
+  loop: "{{ new_virtual_machines }}"
   register: disk_placeholder
   loop_control:
     label: '{{ item.name }}.qcow2'
@@ -130,7 +150,7 @@
     state: directory
     path: '{{ libvirt_provision_temp_path }}'
     prefix: '{{ item.name }}-seed-'
-  loop: "{{ running_virtual_machines }}"
+  loop: "{{ new_virtual_machines }}"
   loop_control:
     label: '{{ item.name }}'
   register: seed_build_folders
@@ -145,7 +165,7 @@
   when: state == "present"
 
 - name: Build and upload cloud-init seed per virtual machine
-  when: state == "present"
+  when: state == "present" and new_virtual_machines | length > 0
   block:
     - name: Create cloud-init user-data
       ansible.builtin.template:
